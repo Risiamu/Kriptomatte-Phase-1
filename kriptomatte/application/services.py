@@ -3,7 +3,8 @@ import logging
 import numpy as np
 from kriptomatte.domain.repositories import ImageRepository
 from kriptomatte.domain.services.masking import MaskCompositionService
-from kriptomatte.domain.services.visualization import VisualizationService
+from kriptomatte.domain.services.visualization import BitwiseColorService
+from kriptomatte.domain.model.value_objects import CryptoID
 from kriptomatte.infrastructure.io.image_writer import ImageWriter
 
 logger = logging.getLogger(__name__)
@@ -82,7 +83,10 @@ class CryptomatteExtractionService:
                     continue
                 
                 # Collect for preview (non-empty only)
-                layer_masks_for_preview.append((obj_name, mask))
+                # Convert float ID to uint32 for bitwise packing
+                id_obj = CryptoID(obj_id)
+                id_uint32 = id_obj.to_uint32()
+                layer_masks_for_preview.append((id_uint32, mask))
                 
                 logger.info(f"Saving mask for {obj_name}")
                 
@@ -97,18 +101,18 @@ class CryptomatteExtractionService:
             if layer_masks_for_preview:
                 logger.info(f"Generating summary preview for layer {layer.name}...")
                 
-                # Combine masks
-                combined_label_mask, _ = MaskCompositionService.combine_masks_sequentially(layer_masks_for_preview)
+                # Combine masks using actual IDs
+                combined_id_map = MaskCompositionService.combine_masks_with_ids(layer_masks_for_preview)
                 
-                # Colorize
-                colored_preview = VisualizationService.apply_random_colormap(combined_label_mask)
+                # Encode IDs to RGB
+                packed_preview = BitwiseColorService.encode_ids_to_rgb(combined_id_map)
                 
                 # Save preview
                 preview_filename = f"{base_name}_{layer.name}_mask.png"
                 preview_path = os.path.join(output_dir, preview_filename)
                 
-                logger.info(f"Saving summary preview to {preview_path}")
-                ImageWriter.save_mask(preview_path, colored_preview)
+                logger.info(f"Saving packed ID preview to {preview_path}")
+                ImageWriter.save_mask(preview_path, packed_preview)
             else:
                 logger.warning(f"No masks found for layer {layer.name}, skipping preview.")
                 

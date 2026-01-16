@@ -55,6 +55,28 @@ class MaskCompositionService:
         return total
 
     @staticmethod
+    def combine_masks_with_ids(masks_with_ids: list[tuple[int, np.ndarray]]) -> np.ndarray:
+        """
+        Combines masks using the provided integer IDs.
+        masks_with_ids: List of (id, mask). mask is uint8 coverage.
+        Returns:
+            mask_combined: uint32 array [H, W] with IDs.
+        """
+        if not masks_with_ids:
+            return np.array([], dtype=np.uint32)
+
+        first_mask = masks_with_ids[0][1]
+        mask_combined = np.zeros_like(first_mask, dtype=np.uint32)
+        best = np.zeros_like(first_mask) # Coverage tracker
+
+        for id_val, obj_mask in masks_with_ids:
+             # Update where current coverage is better
+             mask_combined[obj_mask > best] = id_val
+             best = np.maximum(best, obj_mask)
+             
+        return mask_combined
+
+    @staticmethod
     def combine_masks_sequentially(obj_masks: list[tuple[str, np.ndarray]]) -> tuple[np.ndarray, dict]:
         """
         Combines masks into a single labeled image, preserving obstruction based on order and coverage.

@@ -24,5 +24,10 @@ class CryptoID:
         unpacked = struct.unpack("=I", packed)[0]
         return f"{unpacked:08x}"
 
+    def to_uint32(self) -> int:
+        """Returns the 32-bit unsigned integer representation of the float ID."""
+        packed = struct.pack('=f', self.value)
+        return struct.unpack("=I", packed)[0]
+
 # Manifest is essentially a mapping of Object Name -> ID (float)
 Manifest = Dict[str, float]

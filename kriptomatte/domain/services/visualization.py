@@ -1,59 +1,48 @@
 import numpy as np
-import colorsys
 
-class VisualizationService:
+class BitwiseColorService:
     @staticmethod
-    def generate_random_colors(num_colors: int) -> np.ndarray:
+    def encode_ids_to_rgb(id_map: np.ndarray) -> np.ndarray:
         """
-        Generates N distinct colors using Golden Ratio sampling for Hue.
-        Returns uint8 array of shape (num_colors, 3).
+        Converts a 2D array of Object IDs into a 3D RGB image using bitwise packing.
+
+        Logic:
+        - Red   = Lowest 8 bits
+        - Green = Middle 8 bits
+        - Blue  = Highest 8 bits
+
+        Args:
+            id_map: 2D numpy array (uint32 or int) of object IDs.
+
+        Returns:
+            np.ndarray: [H, W, 3] uint8 array ready to save as PNG.
         """
-        # 1. Generate distinct Hues using Golden Ratio
-        # 0.61803398875 is the Golden Ratio Conjugate
-        golden_ratio = 0.61803398875
-        hues = (np.arange(num_colors) * golden_ratio) % 1.0
+        # Ensure input is an integer type suitable for bitwise ops
+        id_map = id_map.astype(np.uint32)
 
-        # 2. Vary Saturation and Lightness to distinguish neighbors even more
-        # We cycle S and L with different periods to avoid patterns
-        saturations = 0.5 + (np.arange(num_colors) % 2) * 0.25  # 0.5 or 0.75
-        lightness = 0.4 + (np.arange(num_colors) % 3) * 0.15    # 0.4, 0.55, or 0.7
+        # Vectorized bitwise extraction
+        # We mask with 0xFF (255) to grab just that byte
+        r = (id_map & 0xFF)
+        g = (id_map >> 8) & 0xFF
+        b = (id_map >> 16) & 0xFF
 
-        # 3. Vectorized HSV to RGB conversion
-        # Since standard colorsys is scalar, we can use a fast vectorized approximation or loop
-        # For N < 100k, a list comprehension with colorsys is plenty fast enough
-        rgb_tuples = [
-            colorsys.hls_to_rgb(h, l, s)
-            for h, l, s in zip(hues, lightness, saturations)
-        ]
+        # Stack into [Height, Width, 3]
+        # astype(uint8) is critical for image saving
+        rgb_image = np.stack((r, g, b), axis=-1).astype(np.uint8)
 
-        rgb_array = np.array(rgb_tuples, dtype=np.float32)
-        return (rgb_array * 255).astype(np.uint8)
+        return rgb_image
 
     @staticmethod
-    def apply_random_colormap(mask_combined: np.ndarray) -> np.ndarray:
+    def decode_rgb_to_ids(rgb_image: np.ndarray) -> np.ndarray:
         """
-        Applies random colors to the labeled mask.
-        mask_combined: 2D array [H, W] with integer IDs (0..N).
+        Reverses the process: Converts an RGB image back into Object IDs.
+        Useful for verification or reading the mask later.
         """
-        # Ensure mask is integer
-        mask_combined = mask_combined.astype(int)
+        rgb_image = rgb_image.astype(np.uint32)
 
-        # 1. Identify amount of colors needed
-        # (Assuming indices are contiguous 0..N. If sparse, use unique)
-        max_id = mask_combined.max()
-        if max_id == 0:
-            # Handle all black/background case
-            return np.zeros((*mask_combined.shape, 3), dtype=np.uint8)
+        r = rgb_image[:, :, 0]
+        g = rgb_image[:, :, 1]
+        b = rgb_image[:, :, 2]
 
-        # 2. Generate Palette
-        # We need max_id + 1 colors (index 0 is usually background)
-        palette = VisualizationService.generate_random_colors(max_id + 1)
-
-        # Set background (index 0) to Black explicitly
-        palette[0] = [0, 0, 0]
-
-        # 3. Map pixels to colors
-        # numpy.take is extremely fast for this integer indexing
-        colored_image = palette[mask_combined]
-
-        return colored_image
+        # ID = R + (G * 256) + (B * 65536)
+        return r + (g << 8) + (b << 16)
