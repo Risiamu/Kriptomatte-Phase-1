@@ -9,6 +9,7 @@ __pycache__/
 # Costume
 .idea/
 *.exr
+*.png
 # Distribution / packaging
 .Python
 build/
