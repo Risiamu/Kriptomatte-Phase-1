@@ -2,8 +2,6 @@
 # Kriptomatte: Making Cryptomattes Easier for 2D Artists
 This document outlines the Kriptomatte project, which aims to bring Cryptomatte functionality to Krita, the popular open-source painting software.
 
-[中文](readme_sc.md)
-
 [Demo Video](https://youtu.be/_VKerJcCXeE)
 
 ## What is Kriptomatte and What is this repo?
