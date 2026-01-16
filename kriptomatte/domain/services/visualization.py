@@ -1,52 +1,59 @@
-import colorsys
 import numpy as np
-from typing import List, Tuple
-
-class RandomColor:
-    def __init__(self, init_sat, init_hue, init_luma=0.07):
-        self.init_hue = init_hue
-        self.init_sat = init_sat
-        self.init_luma = init_luma
-        self.update_counter = 0
-
-    def update_hls(self):
-        if self.update_counter % 3 == 2:
-            self.init_hue = (self.init_hue + 0.04) % 1
-        if self.update_counter % 3 == 1:
-            self.init_sat = (self.init_sat + 0.14) % 1
-        if self.update_counter % 3 == 0:
-            self.init_luma = (self.init_luma + 0.07) % 0.5 + 0.07
-        self.update_counter = self.update_counter + 1
-
-    def random_color(self) -> List[int]:
-        r, g, b = colorsys.hls_to_rgb(self.init_hue, self.init_luma, self.init_sat)
-        rgb_256_int8 = []
-        for color in [r, g, b]:
-            color_in_numpy = np.array(color, dtype=np.float32)
-            color_in_numpy = (np.clip(color_in_numpy * 255, 0, 255)).astype(np.uint8)
-            col_list = int(color_in_numpy) # Convert to standard int
-            rgb_256_int8.append(col_list)
-        self.update_hls()
-        return rgb_256_int8
+import colorsys
 
 class VisualizationService:
+    @staticmethod
+    def generate_random_colors(num_colors: int) -> np.ndarray:
+        """
+        Generates N distinct colors using Golden Ratio sampling for Hue.
+        Returns uint8 array of shape (num_colors, 3).
+        """
+        # 1. Generate distinct Hues using Golden Ratio
+        # 0.61803398875 is the Golden Ratio Conjugate
+        golden_ratio = 0.61803398875
+        hues = (np.arange(num_colors) * golden_ratio) % 1.0
+
+        # 2. Vary Saturation and Lightness to distinguish neighbors even more
+        # We cycle S and L with different periods to avoid patterns
+        saturations = 0.5 + (np.arange(num_colors) % 2) * 0.25  # 0.5 or 0.75
+        lightness = 0.4 + (np.arange(num_colors) % 3) * 0.15    # 0.4, 0.55, or 0.7
+
+        # 3. Vectorized HSV to RGB conversion
+        # Since standard colorsys is scalar, we can use a fast vectorized approximation or loop
+        # For N < 100k, a list comprehension with colorsys is plenty fast enough
+        rgb_tuples = [
+            colorsys.hls_to_rgb(h, l, s)
+            for h, l, s in zip(hues, lightness, saturations)
+        ]
+
+        rgb_array = np.array(rgb_tuples, dtype=np.float32)
+        return (rgb_array * 255).astype(np.uint8)
+
     @staticmethod
     def apply_random_colormap(mask_combined: np.ndarray) -> np.ndarray:
         """
         Applies random colors to the labeled mask.
-        mask_combined: 2D array where each value corresponds to an object ID (0 is background).
+        mask_combined: 2D array [H, W] with integer IDs (0..N).
         """
-        # Original params: RandomColor(0, 0, 0.07)
-        random_color_gen = RandomColor(0, 0, 0.07)
-        
-        num_objects = mask_combined.max() + 1
-        # Background (0) is black
-        colors = [[0, 0, 0]] + [random_color_gen.random_color() for _ in range(num_objects - 1)]
-        
-        # Use numpy take to map indices to colors
-        # colors array shape: [NumObjects, 3]
-        # mask_combined shape: [H, W]
-        # result shape: [H, W, 3]
-        mask_combined_rgb = np.take(colors, mask_combined, axis=0)
-        
-        return mask_combined_rgb.astype(np.uint8)
+        # Ensure mask is integer
+        mask_combined = mask_combined.astype(int)
+
+        # 1. Identify amount of colors needed
+        # (Assuming indices are contiguous 0..N. If sparse, use unique)
+        max_id = mask_combined.max()
+        if max_id == 0:
+            # Handle all black/background case
+            return np.zeros((*mask_combined.shape, 3), dtype=np.uint8)
+
+        # 2. Generate Palette
+        # We need max_id + 1 colors (index 0 is usually background)
+        palette = VisualizationService.generate_random_colors(max_id + 1)
+
+        # Set background (index 0) to Black explicitly
+        palette[0] = [0, 0, 0]
+
+        # 3. Map pixels to colors
+        # numpy.take is extremely fast for this integer indexing
+        colored_image = palette[mask_combined]
+
+        return colored_image
