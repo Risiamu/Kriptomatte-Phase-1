@@ -1,0 +1,16 @@
+- # Application Layer
+  - The Application Layer orchestrates the flow of data between the User Interface, the Domain, and the Infrastructure. It contains the application specific business rules.
+  - ## Services
+    - **CryptomatteExtractionService**
+      - **Location**: `kriptomatte/application/services.py`
+      - **Role**: Main orchestrator for the extraction workflow.
+      - **Dependencies**:
+        - `ImageRepository`: To load image data (Infrastructure).
+        - `MaskCompositionService`: To perform domain logic (Domain).
+      - **Key Methods**:
+        - `extract_all(file_path: str, output_dir: str)`:
+          - Loads the `ExrImage` aggregate.
+          - Iterates through all `CryptomatteLayer`s.
+          - Reads heavy channel data only when processing a specific layer to optimize memory.
+          - Uses `MaskCompositionService` to compute masks for each object in the manifest.
+          - Saves the resulting masks to disk.

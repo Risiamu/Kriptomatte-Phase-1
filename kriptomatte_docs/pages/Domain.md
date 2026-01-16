@@ -1,0 +1,37 @@
+- # Domain Layer
+  - The Domain Layer encapsulates the core business logic and rules of Cryptomatte, independent of external frameworks or file systems.
+  - ## Model
+    - **Location**: `kriptomatte/domain/model/`
+    - ### Aggregates
+      - **ExrImage**
+        - **File**: `aggregates.py`
+        - The Aggregate Root representing a loaded EXR file structure.
+        - Enforces consistency and access to `CryptomatteLayer`s.
+    - ### Entities
+      - **CryptomatteLayer**
+        - **File**: `entities.py`
+        - Represents a single Cryptomatte definition within the file (e.g., "cryptoObject").
+        - Holds the `Manifest` and the list of channel names.
+      - **ObjectMask**
+        - **File**: `entities.py`
+        - Represents the extracted result: a named object and its binary mask.
+    - ### Value Objects
+      - **Location**: `value_objects.py`
+      - **CryptoID**: Wraps the float32 Cryptomatte ID. Provides methods to convert to Hex or RGB preview.
+      - **Manifest**: A dictionary mapping Object Names to `CryptoID`s.
+      - **PixelWindow**: Defines the dimensions (width, height) of the image data.
+  - ## Services
+    - **Location**: `kriptomatte/domain/services/`
+    - **MurmurHashService**
+      - **File**: `hashing.py`
+      - Implements the Cryptomatte hashing specification (MurmurHash3) to convert object names to float IDs.
+    - **MaskCompositionService**
+      - **File**: `masking.py`
+      - Pure domain logic for combining coverage layers.
+      - `compute_mask(id, channels)`: Converts raw rank data into a final alpha mask.
+  - ## Repositories (Interfaces)
+    - **Location**: `kriptomatte/domain/repositories.py`
+    - **ImageRepository**
+      - Abstract Base Class defining the contract for loading image data.
+      - `load_header(path)`: Returns an `ExrImage` aggregate.
+      - `read_channels(path, channels)`: Returns raw numpy arrays.

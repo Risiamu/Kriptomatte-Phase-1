@@ -1,0 +1,29 @@
+- # Infrastructure Layer
+  - The Infrastructure Layer provides implementation for the interfaces defined in the Domain and handles external tools (OpenEXR, Filesystem, Logging).
+  - ## Persistence
+    - **OpenExrRepository**
+      - **Location**: `kriptomatte/infrastructure/persistence/exr_repository.py`
+      - **Implements**: `ImageRepository` (Domain Interface).
+      - **Responsibilities**:
+        - Uses `OpenEXR` python bindings to read headers and pixel data.
+        - Handles `ExrDtype` conversion (e.g., converting 16-bit half-float to 32-bit float for Domain consumption).
+        - Identifies Cryptomatte layers and naming schemes from the EXR header.
+  - ## Factories
+    - **ManifestFactory**
+      - **Location**: `kriptomatte/infrastructure/factories.py`
+      - **Responsibilities**:
+        - Creates `Manifest` domain objects from metadata.
+        - Logic to parse embedded JSON manifests.
+        - Logic to resolve and load sidecar manifest files.
+  - ## I/O
+    - **Location**: `kriptomatte/infrastructure/io/`
+    - **ImageWriter**
+      - **File**: `image_writer.py`
+      - Wraps `PIL` (Pillow) to save numpy arrays as PNG images.
+      - Handles specific logic for saving Grayscale vs RGB/RGBA masks.
+    - **FileSystem**
+      - **File**: `file_system.py`
+      - Utilities for directory creation and safe path resolution.
+  - ## Logging
+    - **Location**: `kriptomatte/infrastructure/logging/logger.py`
+    - Provides a standardized `setup_logger` function to ensure consistent log formatting across the application.
