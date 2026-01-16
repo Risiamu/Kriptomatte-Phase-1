@@ -15,7 +15,10 @@ def main():
     args = get_args()
     
     # Setup Infrastructure
-    logger = setup_logger()
+    # Setting level to DEBUG as requested for troubleshooting
+    logger = setup_logger(level=logging.DEBUG)
+    
+    logger.debug(f"CLI args: {args}")
     
     repo = OpenExrRepository()
     service = CryptomatteExtractionService(repo)
@@ -23,7 +26,7 @@ def main():
     try:
         service.extract_all(args.input_path)
     except Exception as e:
-        logger.error(f"An error occurred: {e}")
+        logger.error(f"An error occurred: {e}", exc_info=True)
         sys.exit(1)
 
 if __name__ == "__main__":

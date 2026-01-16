@@ -30,31 +30,38 @@ CRYPTO_METADATA_LEGAL_PREFIX = ["exr/cryptomatte/", "cryptomatte/"]
 
 class OpenExrRepository(ImageRepository):
     def load_header(self, path: str) -> ExrImage:
-        logger.info(f"Opening EXR file: {path}")
-        exr_file = OpenEXR.InputFile(path)
+        logger.debug(f"Attempting to load header from: {path}")
+        try:
+            exr_file = OpenEXR.InputFile(path)
+        except Exception as e:
+            logger.error(f"Failed to open EXR file at {path}: {e}")
+            raise
+
+        logger.debug("Reading EXR header...")
         header = exr_file.header()
+        logger.debug("Header read successfully.")
         
         # Parse Window
         dw = header['dataWindow']
         width = dw.max.x - dw.min.x + 1
         height = dw.max.y - dw.min.y + 1
         window = PixelWindow(height=height, width=width)
+        logger.debug(f"Data window parsed: {width}x{height}")
         
         # Parse Layers
+        logger.debug("Parsing Cryptomatte layers from header...")
         layers = self._parse_layers(header, path)
-        
-        # We don't keep the OpenEXR file open in the aggregate, 
-        # but we might need to re-open it for reading channels.
-        # For now, we just return the aggregate.
+        logger.debug(f"Found {len(layers)} Cryptomatte layers.")
         
         return ExrImage(
             file_path=path,
-            header=dict(header), # Convert to dict to avoid pickling issues if any
+            header=dict(header), 
             window=window,
             layers=layers
         )
 
     def read_channels(self, path: str, channels: List[str]) -> np.ndarray:
+        logger.debug(f"Opening file {path} to read {len(channels)} channels.")
         exr_file = OpenEXR.InputFile(path)
         header = exr_file.header()
         
@@ -65,7 +72,8 @@ class OpenExrRepository(ImageRepository):
         shape = (height, width)
         
         read_channels_list = []
-        for channel_name in channels:
+        for i, channel_name in enumerate(channels):
+            logger.debug(f"Reading channel {i+1}/{len(channels)}: {channel_name}")
             # Determine type
             chan_type = header['channels'][channel_name].type
             
@@ -80,20 +88,27 @@ class OpenExrRepository(ImageRepository):
                 np_type = np.float16
             else:
                 np_type = np.float32
-                
-            channel_arr = np.frombuffer(exr_file.channel(channel_name), dtype=np_type)
+            
+            logger.debug(f"Channel type: {chan_type}, Reading as numpy type: {np_type}")
+            channel_buffer = exr_file.channel(channel_name)
+            channel_arr = np.frombuffer(channel_buffer, dtype=np_type)
             channel_arr = channel_arr.reshape(shape)
             
             # Cast to float32 if half float, as domain expects standard floats
             if np_type == np.float16:
+                 logger.debug("Casting FLOAT16 to FLOAT32...")
                  channel_arr = channel_arr.astype(np.float32)
                  
             read_channels_list.append(channel_arr)
-            
-        return np.stack(read_channels_list, axis=-1)
+        
+        logger.debug("Stacking channels into single array...")
+        result = np.stack(read_channels_list, axis=-1)
+        logger.debug(f"Channels read and stacked. Result shape: {result.shape}")
+        return result
 
     def _parse_layers(self, header: Any, path: str) -> List[CryptomatteLayer]:
         layers = []
+        logger.debug("Extracting Cryptomatte metadata from header keys...")
         cryptomattes_meta = self._get_cryptomattes_from_header(header)
         
         for meta_id, meta_data in cryptomattes_meta.items():
@@ -101,11 +116,16 @@ class OpenExrRepository(ImageRepository):
             if isinstance(name, bytes):
                 name = name.decode('utf-8')
             
+            logger.debug(f"Processing layer metadata for: {name} (ID: {meta_id})")
+
             # Identify channels
             channels, naming_scheme = self._identify_channels(header, name)
+            logger.debug(f"Identified {len(channels)} channels with naming scheme '{naming_scheme}'")
             
             # Parse Manifest
+            logger.debug("Parsing manifest...")
             manifest = ManifestFactory.create_from_metadata(meta_data, path)
+            logger.debug(f"Manifest parsed. Contains {len(manifest)} objects.")
             
             layer = CryptomatteLayer(
                 name=name,
