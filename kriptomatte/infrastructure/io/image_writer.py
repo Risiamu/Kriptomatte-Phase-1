@@ -15,7 +15,7 @@ class ImageWriter:
         
         # Ensure directory exists
         dir_name = os.path.dirname(path)
-        if not os.path.exists(dir_name):
+        if dir_name and not os.path.exists(dir_name):
             logger.debug(f"Creating directory: {dir_name}")
             os.makedirs(dir_name, exist_ok=True)
         
