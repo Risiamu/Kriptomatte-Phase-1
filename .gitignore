@@ -6,8 +6,9 @@ __pycache__/
 # C extensions
 *.so
 
+# Costume
 .idea/
-
+*.exr
 # Distribution / packaging
 .Python
 build/
