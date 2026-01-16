@@ -1,5 +1,6 @@
 import os
 import logging
+import numpy as np
 from kriptomatte.domain.repositories import ImageRepository
 from kriptomatte.domain.services.masking import MaskCompositionService
 from kriptomatte.infrastructure.io.image_writer import ImageWriter
@@ -10,7 +11,7 @@ class CryptomatteExtractionService:
     def __init__(self, repo: ImageRepository):
         self.repo = repo
 
-    def extract_all(self, file_path: str, output_dir: str = None):
+    def extract_all(self, file_path: str, output_dir: str | None = None):
         """
         Extracts all masks from the given EXR file.
         """
@@ -39,6 +40,21 @@ class CryptomatteExtractionService:
             logger.info(f"Reading channels for {layer.name}")
             raw_data = self.repo.read_channels(file_path, layer.channel_names)
             
+            # --- OPTIMIZATION START ---
+            logger.info(f"Analyzing visible objects in {layer.name}...")
+            
+            # Cryptomatte channels are alternating: [ID, Coverage, ID, Coverage, ...]
+            # We slice raw_data to get only the ID channels (indices 0, 2, 4, etc.)
+            id_channels = raw_data[:, :, 0::2]
+            
+            # Get all unique IDs present in the actual pixels
+            visible_ids = np.unique(id_channels)
+            
+            # Convert to a set for O(1) lookup speed
+            visible_ids_set = set(visible_ids)
+            logger.info(f"Found {len(visible_ids_set)} visible objects out of {len(layer.manifest)} in manifest.")
+            # --- OPTIMIZATION END ---
+            
             # 3. Domain logic to get masks
             # layer.manifest is Dict[str, float]
             # sort keys for deterministic order
@@ -47,10 +63,16 @@ class CryptomatteExtractionService:
             for obj_name in sorted_names:
                 obj_id = layer.manifest[obj_name]
                 
+                # --- FAST CHECK ---
+                # If the ID isn't in the pixel data, skip expensive computation entirely
+                if obj_id not in visible_ids_set:
+                    continue
+                # ------------------
+                
                 # compute_mask returns [H, W] uint8
                 mask = MaskCompositionService.compute_mask(obj_id, raw_data)
                 
-                # Optimization: check if empty
+                # Optimization: check if empty (Double check, though visible_ids_set should handle 99% of cases)
                 if mask.min() == mask.max():
                     logger.debug(f"Skipping empty mask for {obj_name}")
                     continue
