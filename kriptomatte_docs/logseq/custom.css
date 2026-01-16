@@ -1,0 +1,228 @@
+/* --- YOUR EXISTING CONFIG --- */
+:root {
+  --ls-font-family: "Sarasa UI SC", sans-serif;
+  --ls-font-code: "Sarasa Term Slab SC", monospace;
+  --ls-font-heading: "Gentium Plus", "思源宋体 Medium","Source Hans Serif SC Medium", var(--ls-font-family), serif;
+  --ls-font-body: "Gentium Plus", "Zhuque Fangsong (Technical Preview)", var(--ls-font-family), serif;
+  --ls-font-draft: "更纱黑体 UI SC","Sarasa UI SC", sans-serif;
+  --ls-font-cjk-serif: "思源宋体 Light","Source Hans Serif SC Light", var(--ls-font-family), serif;
+}
+
+:not(pre) > code,
+.CodeMirror {
+  font-family: var(--ls-font-code);
+  font-feature-settings: normal;
+}
+
+/* --- NOVEL WRITING STYLES --- */
+
+/* 1. TITLES & HEADINGS*/
+/* Targets the main page title and any H1-H6 headers inside blocks */
+
+.ls-page-title h1.title,
+.ls-page-title h1.title .title,
+.ls-page-title h1.title .page-title-sizer-wrapper,
+.ls-page-title h1.title span {
+  font-family: var(--ls-font-heading) !important;
+  font-size: 60px;
+  line-height: 1.2;
+  font-weight: 400 !important;
+  /* or use 'normal' !important; */
+}
+
+/* --- 1b. HEADINGS (SHARED STYLES) --- */
+.journal-title h1,
+.block-content h1,
+.block-content h2,
+.block-content h3,
+.block-content h4 {
+  font-family: var(--ls-font-heading);
+  font-weight: normal !important;
+  line-height: 1.2; /* Shared line-height (optional, usually looks good) */
+}
+
+/* --- HEADINGS (SPECIFIC SIZES) --- */
+
+.journal-title h1 {
+  font-size: 56px; 
+}
+
+/* H1 (One #) - ~2.6x body text */
+.block-content h1 {
+  font-size: 48px;
+}
+
+/* H2 (Two ##) - ~2.2x body text */
+.block-content h2 {
+  font-size: 40px;
+}
+
+/* H3 (Three ###) - ~1.8x body text */
+.block-content h3 {
+  font-size: 32px;
+}
+
+/* H4 (Four ####) - ~1.4x body text */
+.block-content h4 {
+  font-size: 26px;
+}
+
+
+/* 2. NORMAL PARAGRAPHS (Zhuque Fangsong) */
+.block-content {
+  font-family: var(--ls-font-body);
+  font-size: 18px; /* Optional: adjust reading size */
+  line-height: 1.44;
+}
+
+.ls-block {
+  margin-top: 0px !important; /* No gap above */
+  margin-bottom: 6px !important; /* Tiny 2px gap below */
+}
+
+/* 4. SECONDARY LEVEL DRAFT (Tag: #v2) -> Dotted Box + Sarasa Semibold */
+.ls-block[data-refs-self*="v2"],
+.ls-block[data-refs-self*="v1"] {
+  border: 2px dotted #8289e7; /* The dotted box */
+  border-radius: 4px;
+  padding: 8px !important;
+  margin-top: 0px !important; /* No gap above */
+  margin-bottom: 2px !important; /* Tiny 2px gap below */
+  /* margin: 4px 0; */
+  /* background-color: rgba(255, 255, 255, 0.02);  */
+}
+
+/* Change font inside the dotted box */
+.ls-block[data-refs-self*="v2"] .block-content {
+  font-family: var(--ls-font-draft);
+  font-weight: 400; /* Semibold */
+  font-size: 16px; /* Optional: adjust reading size */
+  line-height: 1.25;
+  color: #282d7a;
+}
+
+/* Change font inside the dotted box */
+.ls-block[data-refs-self*="v1"] .block-content {
+  font-family: var(--ls-font-draft);
+  font-weight: 400; /* Semibold */
+  font-size: 16px; /* Optional: adjust reading size */
+  line-height: 1.25;
+  color: #4c54c7;
+}
+
+/* 5. OUTLINE (Tag: #大纲) -> Pink + 方正悠宋 */
+.ls-block[data-refs-self*="dagh"] .block-content {
+  font-family: var(--ls-font-cjk-serif);
+  color: #e0398d; /* Pink */
+}
+
+/* 6. SETTING (Tag: #设定) -> Purple + 方正悠宋 */
+.ls-block[data-refs-self*="uedk"] .block-content {
+  font-family: var(--ls-font-cjk-serif);
+  color: #6d32da; /* Purple */
+}
+
+/* 7. COMMENT/ANNOTATION (Tag: #vuui) */
+.ls-block[data-refs-self*="vuui"] .block-content {
+  display: block !important;     /* Ensures width and margins apply correctly */
+  width: 61.8% !important;       /* The Golden Ratio width */
+  margin-left: auto !important;  /* Pushes the block to the right */
+  margin-right: 0 !important;    /* Anchors it to the right edge */
+  text-align: right !important;  /* Aligns the text inside */
+  color: #8b92a2 !important;     /* Grey color */
+  padding-right: 4px;            /* Optional: prevents text touching the very edge */
+}
+
+/* --- OPTIONAL: HIDE THE TAGS THEMSELVES --- */
+a.tag[data-ref="v1"],
+a.tag[data-ref="v2"],
+a.tag[data-ref="dagh"],
+a.tag[data-ref="uedk"] {
+  display: none;
+}
+
+a.tag[data-ref="vuui"] {
+  display: none;
+}
+
+/* --- EDITOR STYLES (Make Edit Mode match View Mode) --- */
+
+/* 1. DEFAULT EDITOR (Matches Normal Paragraphs) */
+.block-editor textarea {
+  font-family: var(--ls-font-body) !important;
+  font-size: 18px !important;
+  line-height: 1.44 !important;
+  /* Optional: Match text color if you have a specific one */
+  /* color: #333 !important; */
+}
+
+/* 2. DRAFT EDITOR (Matches #v2 tag) */
+/* When editing a block tagged #v2 */
+.ls-block[data-refs-self*="v2"] .block-editor textarea {
+  font-family: var(--ls-font-draft) !important;
+  font-weight: 400 !important;
+  font-size: 16px !important;
+  line-height: 1.25 !important;
+  color: #282d7a !important;
+  background-color: transparent !important; /* Blends with your dotted box */
+}
+
+/* 3. DRAFT EDITOR (Matches #v1 tag) */
+/* When editing a block tagged #v1 */
+.ls-block[data-refs-self*="v1"] .block-editor textarea {
+  font-family: var(--ls-font-draft) !important;
+  font-weight: 400 !important;
+  font-size: 16px !important;
+  line-height: 1.25 !important;
+  color: #4c54c7 !important;
+  background-color: transparent !important;
+}
+
+/* 4. OUTLINE EDITOR (Matches #dagh / 大纲) */
+.ls-block[data-refs-self*="dagh"] .block-editor textarea {
+  font-family: var(--ls-font-cjk-serif) !important;
+  color: #e0398d !important;
+}
+
+/* 5. SETTING EDITOR (Matches #uedk / 设定) */
+.ls-block[data-refs-self*="uedk"] .block-editor textarea {
+  font-family: var(--ls-font-cjk-serif) !important;
+  color: #6d32da !important;
+}
+
+/* 6. COMMENT EDITOR (Matches #vuui / 注释) */
+
+/* A. The container for the text area */
+.ls-block[data-refs-self*="vuui"] .block-editor {
+  width: 61.8% !important;
+  margin-left: auto !important;
+  margin-right: 0 !important;
+}
+
+/* B. The text area itself */
+.ls-block[data-refs-self*="vuui"] .block-editor textarea {
+  text-align: right !important;
+  color: #8b92a2 !important;
+}
+
+/* --- CUSTOM BOLD HIGHLIGHT (Overrides **bold**) --- */
+
+/* 1. VIEW MODE */
+.block-content b,
+.block-content strong {
+  font-weight: normal !important;   /* Removes the bold effect */
+  background-color: #e1e3ff;        /* The highlight color (Pastel Yellow) */
+  color: #263238;                   /* Optional: Force text color for contrast */
+  padding: 0px 4px;                 /* Adds a little breathing room on sides */
+  border-radius: 4px;               /* Rounds the corners of the highlight */
+  
+  /* border-bottom: 2px solid #fdd835; */ 
+}
+
+/* 2. EDITOR MODE */
+.cm-bold {
+  font-weight: normal !important;
+  background-color: #e1e3ff;
+  color: #263238;
+  border-radius: 4px;
+}
