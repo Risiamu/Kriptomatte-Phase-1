@@ -48,8 +48,39 @@ class MaskCompositionService:
         (Note: The original get_combined_mask logic was more complex for ID mapping visualization)
         """
         if not masks:
-            return None
+            return np.array([]) # Return empty array if no masks
         total = np.zeros_like(masks[0])
         for m in masks:
             total = np.maximum(total, m)
         return total
+
+    @staticmethod
+    def combine_masks_sequentially(obj_masks: list[tuple[str, np.ndarray]]) -> tuple[np.ndarray, dict]:
+        """
+        Combines masks into a single labeled image, preserving obstruction based on order and coverage.
+        obj_masks: List of (object_name, mask_array). mask_array should be uint8 [H, W].
+        Returns:
+            mask_combined: uint16 array [H, W] with integer labels.
+            name_to_id: Dict mapping object name to the integer label used in mask_combined.
+        """
+        if not obj_masks:
+            return np.array([]), {}
+
+        first_mask = obj_masks[0][1]
+        mask_combined = np.zeros_like(first_mask, dtype=np.uint16)
+        best = np.zeros_like(first_mask)
+        name_to_mask_id_map = {}
+
+        for idx, (obj_name, obj_mask) in enumerate(obj_masks):
+            # ID starts at 1 (0 is background)
+            label_id = idx + 1
+            name_to_mask_id_map[obj_name] = label_id
+            
+            # Update label where this mask has higher coverage than previous best
+            # Note: obj_mask is uint8 (0-255).
+            mask_combined[obj_mask > best] = label_id
+            
+            # Update best coverage
+            best = np.maximum(best, obj_mask)
+
+        return mask_combined, name_to_mask_id_map

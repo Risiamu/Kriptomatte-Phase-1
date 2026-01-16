@@ -3,6 +3,7 @@ import logging
 import numpy as np
 from kriptomatte.domain.repositories import ImageRepository
 from kriptomatte.domain.services.masking import MaskCompositionService
+from kriptomatte.domain.services.visualization import VisualizationService
 from kriptomatte.infrastructure.io.image_writer import ImageWriter
 
 logger = logging.getLogger(__name__)
@@ -60,6 +61,9 @@ class CryptomatteExtractionService:
             # sort keys for deterministic order
             sorted_names = sorted(layer.manifest.keys())
             
+            # Keep track of masks for the combined preview
+            layer_masks_for_preview = []
+            
             for obj_name in sorted_names:
                 obj_id = layer.manifest[obj_name]
                 
@@ -77,6 +81,9 @@ class CryptomatteExtractionService:
                     logger.debug(f"Skipping empty mask for {obj_name}")
                     continue
                 
+                # Collect for preview (non-empty only)
+                layer_masks_for_preview.append((obj_name, mask))
+                
                 logger.info(f"Saving mask for {obj_name}")
                 
                 # 4. Save
@@ -85,5 +92,24 @@ class CryptomatteExtractionService:
                 save_path = os.path.join(layer_folder, f"{safe_name}_mask.png")
                 
                 ImageWriter.save_mask(save_path, mask)
+            
+            # --- SUMMARY PREVIEW GENERATION ---
+            if layer_masks_for_preview:
+                logger.info(f"Generating summary preview for layer {layer.name}...")
+                
+                # Combine masks
+                combined_label_mask, _ = MaskCompositionService.combine_masks_sequentially(layer_masks_for_preview)
+                
+                # Colorize
+                colored_preview = VisualizationService.apply_random_colormap(combined_label_mask)
+                
+                # Save preview
+                preview_filename = f"{base_name}_{layer.name}_mask.png"
+                preview_path = os.path.join(output_dir, preview_filename)
+                
+                logger.info(f"Saving summary preview to {preview_path}")
+                ImageWriter.save_mask(preview_path, colored_preview)
+            else:
+                logger.warning(f"No masks found for layer {layer.name}, skipping preview.")
                 
         logger.info("Extraction complete.")
